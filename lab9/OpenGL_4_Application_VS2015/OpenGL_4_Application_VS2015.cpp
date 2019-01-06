@@ -48,7 +48,7 @@ glm::vec3 lightColor;
 GLuint lightColorLoc;
 
 gps::Camera myCamera(glm::vec3(0.0f, 1.0f, 2.5f), glm::vec3(0.0f, 0.0f, 0.0f));
-GLfloat cameraSpeed = 0.23f;
+GLfloat cameraSpeed = 1.23f;
 
 bool pressedKeys[1024];
 GLfloat angle;
@@ -56,6 +56,7 @@ GLfloat lightAngle;
 
 gps::Model3D myModel;
 gps::Model3D ground;
+gps::Model3D castle;
 gps::Model3D lightCube;
 gps::Shader myCustomShader;
 gps::Shader lightShader;
@@ -69,7 +70,8 @@ GLuint shadowMapFBO;
 GLuint depthMapTexture;
 
 
-std::vector<const GLchar*> faces;
+std::vector<const GLchar*> faces;
+
 GLenum glCheckError_(const char *file, int line)
 {
 	GLenum errorCode;
@@ -279,7 +281,8 @@ glm::mat4 computeLightSpaceTrMatrix()
 void initModels()
 {
 	myModel = gps::Model3D("objects/nanosuit/nanosuit.obj", "objects/nanosuit/");
-	ground = gps::Model3D("objects/ground/ground.obj", "objects/ground/");
+	ground = gps::Model3D("objects/ground4/ground4.obj", "objects/ground4/");
+	//castle = gps::Model3D("objects/castle/castle.obj", "objects/castle/");
 	lightCube = gps::Model3D("objects/cube/cube.obj", "objects/cube/");
 }
 
@@ -322,12 +325,12 @@ void initUniforms()
 }
 
 void initSkyBox() {
-	faces.push_back("textures/skybox/aft_rt.tga");
-	faces.push_back("textures/skybox/aft_lf.tga");
-	faces.push_back("textures/skybox/aft_up.tga");
-	faces.push_back("textures/skybox/aft_dn.tga");
-	faces.push_back("textures/skybox/aft_bk.tga");
-	faces.push_back("textures/skybox/aft_ft.tga");
+	faces.push_back("textures/skybox/siege_rt.tga");
+	faces.push_back("textures/skybox/siege_lf.tga");
+	faces.push_back("textures/skybox/siege_up.tga");
+	faces.push_back("textures/skybox/siege_dn.tga");
+	faces.push_back("textures/skybox/siege_bk.tga");
+	faces.push_back("textures/skybox/siege_ft.tga");
 
 	mySkyBox.Load(faces);
 	skyboxShader.useShaderProgram();
@@ -426,7 +429,6 @@ void renderScene()
 		
 	//create model matrix for ground
 	model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
-	model = glm::scale(model, glm::vec3(10.0f, 10.0f, 1.0f));
 
 	//send model matrix data to shader
 	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
@@ -437,7 +439,6 @@ void renderScene()
 	glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
 
 	ground.Draw(myCustomShader);
-
 
 	//draw a white cube around the light
 
