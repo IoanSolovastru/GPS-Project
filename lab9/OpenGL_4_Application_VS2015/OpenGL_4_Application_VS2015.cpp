@@ -22,6 +22,7 @@
 
 #include "Model3D.hpp"
 #include "Mesh.hpp"
+#include "SkyBox.hpp"
 
 int glWindowWidth = 640;
 int glWindowHeight = 480;
@@ -47,7 +48,7 @@ glm::vec3 lightColor;
 GLuint lightColorLoc;
 
 gps::Camera myCamera(glm::vec3(0.0f, 1.0f, 2.5f), glm::vec3(0.0f, 0.0f, 0.0f));
-GLfloat cameraSpeed = 0.03f;
+GLfloat cameraSpeed = 0.23f;
 
 bool pressedKeys[1024];
 GLfloat angle;
@@ -60,9 +61,15 @@ gps::Shader myCustomShader;
 gps::Shader lightShader;
 gps::Shader depthMapShader;
 
+//Skybox
+gps::SkyBox mySkyBox;
+gps::Shader skyboxShader;
+
 GLuint shadowMapFBO;
 GLuint depthMapTexture;
 
+
+std::vector<const GLchar*> faces;
 GLenum glCheckError_(const char *file, int line)
 {
 	GLenum errorCode;
@@ -131,13 +138,13 @@ void processMovement()
 {
 
 	if (pressedKeys[GLFW_KEY_Q]) {
-		angle += 0.6f;
+		angle += 0.9f;
 		if (angle > 360.0f)
 			angle -= 360.0f;
 	}
 
 	if (pressedKeys[GLFW_KEY_E]) {
-		angle -= 0.6f;
+		angle -= 0.9f;
 		if (angle < 0.0f)
 			angle += 360.0f;
 	}
@@ -160,7 +167,7 @@ void processMovement()
 
 	if (pressedKeys[GLFW_KEY_J]) {
 
-		lightAngle += 0.3f;
+		lightAngle += 0.9f;
 		if (lightAngle > 360.0f)
 			lightAngle -= 360.0f;
 		glm::vec3 lightDirTr = glm::vec3(glm::rotate(glm::mat4(1.0f), glm::radians(lightAngle), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::vec4(lightDir, 1.0f));
@@ -169,7 +176,7 @@ void processMovement()
 	}
 
 	if (pressedKeys[GLFW_KEY_L]) {
-		lightAngle -= 0.3f; 
+		lightAngle -= 0.9f; 
 		if (lightAngle < 0.0f)
 			lightAngle += 360.0f;
 		glm::vec3 lightDirTr = glm::vec3(glm::rotate(glm::mat4(1.0f), glm::radians(lightAngle), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::vec4(lightDir, 1.0f));
@@ -281,6 +288,7 @@ void initShaders()
 	myCustomShader.loadShader("shaders/shaderStart.vert", "shaders/shaderStart.frag");
 	lightShader.loadShader("shaders/lightCube.vert", "shaders/lightCube.frag");
 	depthMapShader.loadShader("shaders/simpleDepthMap.vert", "shaders/simpleDepthMap.frag");
+	skyboxShader.loadShader("shaders/skyboxShader.vert", "shaders/skyboxShader.frag");
 }
 
 void initUniforms()
@@ -311,6 +319,26 @@ void initUniforms()
 
 	lightShader.useShaderProgram();
 	glUniformMatrix4fv(glGetUniformLocation(lightShader.shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+}
+
+void initSkyBox() {
+	faces.push_back("textures/skybox/aft_rt.tga");
+	faces.push_back("textures/skybox/aft_lf.tga");
+	faces.push_back("textures/skybox/aft_up.tga");
+	faces.push_back("textures/skybox/aft_dn.tga");
+	faces.push_back("textures/skybox/aft_bk.tga");
+	faces.push_back("textures/skybox/aft_ft.tga");
+
+	mySkyBox.Load(faces);
+	skyboxShader.useShaderProgram();
+
+	view = myCamera.getViewMatrix();
+	glUniformMatrix4fv(glGetUniformLocation(skyboxShader.shaderProgram, "view"), 1, GL_FALSE,
+		glm::value_ptr(view));
+
+	projection = glm::perspective(glm::radians(45.0f), (float)retina_width / (float)retina_height, 0.1f, 1000.0f);
+	glUniformMatrix4fv(glGetUniformLocation(skyboxShader.shaderProgram, "projection"), 1, GL_FALSE,
+		glm::value_ptr(projection));
 }
 
 void renderScene()
@@ -351,7 +379,6 @@ void renderScene()
 						glm::value_ptr(model));
 
 	ground.Draw(depthMapShader);
-
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -399,6 +426,8 @@ void renderScene()
 		
 	//create model matrix for ground
 	model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+	model = glm::scale(model, glm::vec3(10.0f, 10.0f, 1.0f));
+
 	//send model matrix data to shader
 	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 
@@ -408,6 +437,7 @@ void renderScene()
 	glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
 
 	ground.Draw(myCustomShader);
+
 
 	//draw a white cube around the light
 
@@ -421,6 +451,9 @@ void renderScene()
 	glUniformMatrix4fv(glGetUniformLocation(lightShader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
 
 	lightCube.Draw(lightShader);
+
+	//SkyBox
+	mySkyBox.Draw(skyboxShader, view, projection);
 }
 
 int main(int argc, const char * argv[]) {
@@ -431,6 +464,7 @@ int main(int argc, const char * argv[]) {
 	initModels();
 	initShaders();
 	initUniforms();	
+	initSkyBox();
 	glCheckError();
 	while (!glfwWindowShouldClose(glWindow)) {
 		renderScene();
